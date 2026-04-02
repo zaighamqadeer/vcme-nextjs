@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user progress, stats, and current lesson state.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "hearts": { "type": "integer" },
+        "hp": { "type": "integer" },
+        "level": { "type": "integer" },
+        "currentChapterIndex": { "type": "integer" },
+        "currentLessonIndex": { "type": "integer" },
+        "isPro": { "type": "boolean", "description": "Whether the user has pro privileges (infinite hearts)" },
+        "hasFinished": { "type": "boolean", "description": "Whether the user has completed the entire course" },
+        "completedLessons": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "hearts", "hp", "level", "currentChapterIndex", "currentLessonIndex"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User-specific progress and profile data."
+    }
+  }
+}

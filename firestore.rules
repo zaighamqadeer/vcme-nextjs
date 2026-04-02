@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Auth UID)
+    // Fields:
+    //   - uid: string (required) - Firebase Auth UID
+    //   - displayName: string (optional)
+    //   - email: string (optional)
+    //   - hearts: number (required, 0-5)
+    //   - hp: number (required, 0-100)
+    //   - level: number (required)
+    //   - currentChapterIndex: number (required)
+    //   - currentLessonIndex: number (required)
+    //   - completedLessons: list (optional)
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'hearts', 'hp', 'level', 'currentChapterIndex', 'currentLessonIndex', 'updatedAt']) &&
+             data.uid == request.auth.uid &&
+             data.hearts is number && data.hearts >= 0 &&
+             data.hp is number && data.hp >= 0 && data.hp <= 100 &&
+             data.level is number && data.level >= 1 &&
+             data.currentChapterIndex is number &&
+             data.currentLessonIndex is number &&
+             data.updatedAt is timestamp &&
+             (!('xp' in data) || data.xp is number) &&
+             (!('isPro' in data) || data.isPro is bool) &&
+             (!('hasFinished' in data) || data.hasFinished is bool) &&
+             (!('completedLessons' in data) || data.completedLessons is list);
+    }
+
+    function isProUnchanged(newData, oldData) {
+      return newData.get('isPro', false) == oldData.get('isPro', false);
+    }
+
+    match /users/{userId} {
+      // Users can only read and write their own profile
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.get('isPro', false) == false;
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && isProUnchanged(request.resource.data, resource.data);
+      allow delete: if false; // Profiles shouldn't be deleted by users
+    }
+
+    match /test/{docId} {
+      allow read: if true; // For connection testing
+    }
+  }
+}
